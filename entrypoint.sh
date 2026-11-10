@@ -35,6 +35,16 @@ else
   echo "[boot] using existing credential on volume (refreshed in place)"
 fi
 
+# --- extra Claude credentials (optional) -----------------------------------
+# One env var per account: CLAUDE_AUTH_<EMAIL WITH _> holding the auth JSON.
+# Same rule as the Codex file: never overwrite a credential already on disk
+# with a newer refresh_token than the secret carries.
+for kv in $(env | grep -oE '^CLAUDE_AUTH_[A-Z0-9_]+=' | tr -d '='); do
+  email=$(printf '%s' "${kv#CLAUDE_AUTH_}" | tr 'A-Z' 'a-z' | sed 's/_/\./g')
+  f="$AUTH_DIR/claude-$email.json"
+  [ -f "$f" ] || { printf '%s' "$(eval "printf '%s' \"\$$kv\"")" > "$f"; chmod 600 "$f"; echo "[boot] seeded $f"; }
+done
+
 # --- config ----------------------------------------------------------------
 # API key is MANDATORY. This listener is public on the internet; an
 # unauthenticated proxy in front of a paid Codex subscription is somebody
